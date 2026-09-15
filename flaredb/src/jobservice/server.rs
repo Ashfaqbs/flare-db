@@ -20,6 +20,7 @@ use crate::engine::scheduler::NodeScheduler;
 use crate::jobservice::artifact::ArtifactStore;
 use crate::jobservice::job::Job;
 use crate::jobservice::job::JobStore;
+use crate::jobservice::state::record_job_state;
 
 pub struct FlareJobService {
     job_store: JobStore,
@@ -88,6 +89,9 @@ impl JobService for FlareJobService {
 
             let job = Job::new(&self.instance_id, pipeline);
             let job_id = job.job_id;
+            if let Err(e) = record_job_state(&self.instance_id, &job_id) {
+                log::warn!("failed to record job state for {}: {}", job_id, e);
+            }
             self.job_store.add_job(&job_id, job.graph);
 
             let new_token = Uuid::new_v4().to_string();
@@ -146,6 +150,10 @@ impl JobService for FlareJobService {
             })?;
 
             let staged_jar = self.artifact_store.staged_path();
+
+            if let Err(e) = record_job_state(&self.instance_id, &preparation_id) {
+                log::warn!("failed to record job state for {}: {}", preparation_id, e);
+            }
 
             // Reset channels so the new harness can connect on fresh streams.
             self.dispatcher.lock().await.reset_channels().await;
