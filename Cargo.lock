@@ -2157,12 +2157,12 @@ checksum = "1d674e81391d1e1ab681a28d99df07927c6d4aa5b027d7da16ba32d1d21ecd99"
 
 [[package]]
 name = "flare-cli"
-version = "0.1.3"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "clap",
  "dirs",
- "flare-sql",
+ "flare-sql 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "indicatif",
  "lzma-rs",
  "reqwest 0.11.27",
@@ -2188,8 +2188,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "flare-sql"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c194c50e8d7784758355fe1be0896bdac716c94b27a5eb31c76e39341d7621c1"
+dependencies = [
+ "anyhow",
+ "datafusion",
+ "dirs",
+ "paimon",
+ "paimon-datafusion",
+ "rustyline",
+]
+
+[[package]]
 name = "flaredb"
-version = "0.1.8"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "arrow-array",
