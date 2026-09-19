@@ -11,7 +11,7 @@ Run (from the repository root, with a FlareDB instance already started via
     pip install -e runner-sdk/python/flarerunner
     python examples/python/wordcount/wordcount.py
 
-See runner-sdk/python/flarerunner/README.md for how to start FlareDB.
+See the repository root README.md for how to start FlareDB.
 """
 
 import argparse
