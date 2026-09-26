@@ -1,5 +1,6 @@
 package com.flaredb.example.flareio;
 
+import com.flaredb.io.FlareDbIO;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
@@ -10,9 +11,6 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.flaredb.io.FlareDbIO;
-import com.flaredb.runner.FlareRunner;
 
 /**
  * Example pipeline that loads a CSV file into FlareDB using {@link FlareDbIO}.
@@ -55,19 +53,22 @@ public class WritePipeline {
       if (fields.length != SCORES_TABLE_SCHEMA.getFieldCount()) {
         LOG.warn(
             "Skipping malformed CSV line (expected {} fields, got {}): {}",
-            SCORES_TABLE_SCHEMA.getFieldCount(), fields.length, line);
+            SCORES_TABLE_SCHEMA.getFieldCount(),
+            fields.length,
+            line);
         return;
       }
 
       try {
         Row row;
-          row = Row.withSchema(SCORES_TABLE_SCHEMA)
-                  .addValue(Long.valueOf(fields[0].trim()))
-                  .addValue(fields[1].trim())
-                  .addValue(fields[2].trim())
-                  .addValue(Long.valueOf(fields[3].trim()))
-                  .addValue(Long.valueOf(fields[4].trim()))
-                  .build();
+        row =
+            Row.withSchema(SCORES_TABLE_SCHEMA)
+                .addValue(Long.valueOf(fields[0].trim()))
+                .addValue(fields[1].trim())
+                .addValue(fields[2].trim())
+                .addValue(Long.valueOf(fields[3].trim()))
+                .addValue(Long.valueOf(fields[4].trim()))
+                .build();
         out.output(row);
       } catch (NumberFormatException e) {
         LOG.warn("Skipping CSV line with a non-numeric field: {}", line);
@@ -77,32 +78,29 @@ public class WritePipeline {
 
   public static void main(String[] args) {
     WritePipelineOptions options =
-        PipelineOptionsFactory.fromArgs(args).as(WritePipelineOptions.class);
-    options.setRunner(FlareRunner.class);
+        WritePipelineOptions.applyFlareDefaults(
+            PipelineOptionsFactory.fromArgs(args).as(WritePipelineOptions.class));
     options.setJobName("flareio-write-scores");
-    options.setJobEndpoint("127.0.0.1:8099");
-    options.setUberJar(
-        "/home/ganesh/flare-db/flareio/flare-db/example/flare-io-write/build/libs/"
-            + "flareio-write-0.1.0-all.jar");
 
     Pipeline pipeline = Pipeline.create(options);
 
     LOG.info(
         "Loading {} into FlareDB table {} at {}",
-        options.getCsvFile(), options.getTable(), options.getDbUrl());
+        options.getCsvFile(),
+        options.getTable(),
+        options.getDbUrl());
 
     // Read the CSV, parse each row, and stream the rows into FlareDB.
     PCollection<Row> rows;
-      rows = pipeline
-              .apply("ReadCsv", TextIO.read().from(options.getCsvFile()))
-              .apply("ParseCsvToRows", ParDo.of(new CsvLineToRowFn()))
-              .setRowSchema(SCORES_TABLE_SCHEMA);
+    rows =
+        pipeline
+            .apply("ReadCsv", TextIO.read().from(options.getCsvFile()))
+            .apply("ParseCsvToRows", ParDo.of(new CsvLineToRowFn()))
+            .setRowSchema(SCORES_TABLE_SCHEMA);
 
     rows.apply(
         "WriteToFlareDb",
-        FlareDbIO.<Row>write()
-            .to(options.getTable())
-            .withDbUrl(options.getDbUrl()));
+        FlareDbIO.<Row>write().to(options.getTable()).withDbUrl(options.getDbUrl()));
 
     pipeline.run();
   }

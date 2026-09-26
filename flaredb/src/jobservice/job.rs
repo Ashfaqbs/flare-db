@@ -35,10 +35,10 @@ impl Job {
             warn!("Failed to create debug output directory: {error}");
         }
 
-        // let raw_pipeline_text_out = path::debug_raw_pipeline_text_path(instance_id, job_id);
-        // if let Err(error) = fs::write(&raw_pipeline_text_out, format!("{pipeline:#?}")) {
-        //     warn!("Failed to write formatted raw pipeline debug file: {error}");
-        // }
+        let raw_pipeline_text_out = path::debug_raw_pipeline_text_path(instance_id, job_id);
+        if let Err(error) = fs::write(&raw_pipeline_text_out, format!("{pipeline:#?}")) {
+            warn!("Failed to write formatted raw pipeline debug file: {error}");
+        }
         // Expand any splittable ParDos within the graph to enable sizing and
         // splitting of bundles.
         let pipeline_with_sdf_expanded = ProtoOverrides::update_transform(
@@ -49,15 +49,15 @@ impl Job {
 
         let fused_pipeline = fuse_pipeline(&pipeline_with_sdf_expanded).unwrap();
 
-        // let fused_out = path::debug_fused_pipeline_path(instance_id, job_id);
-        // if let Err(error) = fs::write(&fused_out, format!("{fused_pipeline:#?}")) {
-        //     warn!("Failed to write formatted fused pipeline debug file: {error}");
-        // }
+        let fused_out = path::debug_fused_pipeline_path(instance_id, job_id);
+        if let Err(error) = fs::write(&fused_out, format!("{fused_pipeline:#?}")) {
+            warn!("Failed to write formatted fused pipeline debug file: {error}");
+        }
 
         let executable_graph = ExecutableGraph::from(
             fused_pipeline.sdk_stages().clone(),
             fused_pipeline.runner_stages().clone(),
-            pipeline_with_sdf_expanded.components.clone().unwrap(),
+            fused_pipeline.components().clone(),
         );
         if let Err(error) = fs::write(&debug_path, executable_graph_to_dot(&executable_graph)) {
             warn!("Failed to write executable graph DOT debug file: {error}");

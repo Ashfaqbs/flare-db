@@ -1,8 +1,11 @@
 package com.flaredb.benchmarks.nexmark;
 
+import com.flaredb.benchmarks.nexmark.queries.BatchQueryRegistry;
+import com.flaredb.runner.FlareRunner;
 import java.io.File;
 import java.io.IOException;
-
+import java.util.Arrays;
+import java.util.Comparator;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.nexmark.NexmarkConfiguration;
 import org.apache.beam.sdk.nexmark.NexmarkPerf;
@@ -11,20 +14,12 @@ import org.apache.beam.sdk.nexmark.NexmarkUtils;
 import org.apache.beam.sdk.nexmark.model.Event;
 import org.apache.beam.sdk.nexmark.model.KnownSize;
 import org.apache.beam.sdk.nexmark.queries.NexmarkQuery;
-import org.apache.beam.sdk.transforms.Count;
-import org.apache.beam.sdk.transforms.DoFn;
-import org.apache.beam.sdk.transforms.ParDo;
 import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.TimestampedValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.flaredb.benchmarks.nexmark.queries.BatchQueryRegistry;
-import com.flaredb.runner.FlareRunner;
-
-/**
- * Launcher for running Nexmark benchmark queries against FlareDB runner.
- */
+/** Launcher for running Nexmark benchmark queries against FlareDB runner. */
 public class FlareNexmarkLauncher {
   private static final Logger LOG = LoggerFactory.getLogger(FlareNexmarkLauncher.class);
 
@@ -38,7 +33,7 @@ public class FlareNexmarkLauncher {
 
   public NexmarkPerf run() throws IOException {
     // Configure default runner to FlareRunner if not specified or set to DirectRunner
-    if (options.getRunner() == null 
+    if (options.getRunner() == null
         || options.getRunner().getName().equals("org.apache.beam.sdk.PipelineRunner")
         || options.getRunner().getName().equals("org.apache.beam.runners.direct.DirectRunner")) {
       options.setRunner(FlareRunner.class);
@@ -51,12 +46,14 @@ public class FlareNexmarkLauncher {
 
     // Auto-detect shadow jar if uberJar path is missing
     if (options.getUberJar() == null || options.getUberJar().isEmpty()) {
-      File shadowJar = new File("benchmarks/nexmark/build/libs/nexmark-0.1.0-all.jar");
-      if (!shadowJar.exists()) {
-        shadowJar = new File("build/libs/nexmark-0.1.0-all.jar");
-      }
-      if (shadowJar.exists()) {
+      File shadowJar = findShadowJar();
+      if (shadowJar != null) {
         options.setUberJar(shadowJar.getAbsolutePath());
+        LOG.info("Auto-detected uber JAR: {}", shadowJar.getAbsolutePath());
+      } else {
+        LOG.warn(
+            "No uber JAR found. Build one with './gradlew :nexmark:shadowJar' or pass "
+                + "--uberJar=<path> explicitly.");
       }
     }
 
@@ -68,13 +65,17 @@ public class FlareNexmarkLauncher {
     }
 
     String queryName = query.getName();
-    LOG.info("Configuring pipeline for Nexmark Query: {} ({})", queryName, configuration.toShortString());
+    LOG.info(
+        "Configuring pipeline for Nexmark Query: {} ({})",
+        queryName,
+        configuration.toShortString());
 
     Pipeline p = Pipeline.create(options);
     NexmarkUtils.setupPipeline(configuration.coderStrategy, p);
 
     // Generate batch event source in default global window
-    PCollection<Event> source = p.apply(queryName + ".ReadEvents", NexmarkUtils.batchEventsSource(configuration));
+    PCollection<Event> source =
+        p.apply(queryName + ".ReadEvents", NexmarkUtils.batchEventsSource(configuration));
 
     if (query.getTransform().needsSideInput()) {
       query.getTransform().setSideInput(NexmarkUtils.prepareSideInput(p, configuration));
@@ -111,8 +112,27 @@ public class FlareNexmarkLauncher {
     perf.eventsPerSec = configuration.numEvents / runtimeSec;
     perf.numResults = 0; // Estimated or reported
 
-    LOG.info("Completed query {} in {}s (Events/sec: {})", queryName, String.format("%.2f", runtimeSec), String.format("%.1f", perf.eventsPerSec));
+    LOG.info(
+        "Completed query {} in {}s (Events/sec: {})",
+        queryName,
+        String.format("%.2f", runtimeSec),
+        String.format("%.1f", perf.eventsPerSec));
 
     return perf;
+  }
+
+  /** Locates the Nexmark shadow (uber) JAR produced by the {@code shadowJar} task. */
+  private static File findShadowJar() {
+    String[] candidateDirs = {"build/libs", "benchmarks/nexmark/build/libs"};
+    for (String dir : candidateDirs) {
+      File[] matches =
+          new File(dir)
+              .listFiles((d, name) -> name.startsWith("nexmark-") && name.endsWith("-all.jar"));
+      if (matches != null && matches.length > 0) {
+        Arrays.sort(matches, Comparator.comparing(File::getName));
+        return matches[matches.length - 1];
+      }
+    }
+    return null;
   }
 }

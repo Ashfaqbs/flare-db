@@ -1,11 +1,24 @@
 // Shared configuration for every Java module in the repository.
+// ./gradlew :flaredb-runner:build
+// ./gradlew :flaredb-runner:publishToMavenLocal
+plugins {
+    alias(libs.plugins.spotless) apply false
+}
 
 allprojects {
     group = 'com.flare-db'
-    version = '0.1.0'
+    version = '0.2.0'
 }
 
 subprojects {
+    apply plugin: 'com.diffplug.spotless'
+
+    spotless {
+        java {
+            googleJavaFormat('1.27.0')
+        }
+    }
+
     plugins.withId('java') {
         java {
             toolchain {

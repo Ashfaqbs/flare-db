@@ -1,5 +1,6 @@
 package com.flaredb.example.flareio;
 
+import com.flaredb.io.FlareDbIO;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.transforms.DoFn;
@@ -8,9 +9,6 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.beam.sdk.values.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.flaredb.io.FlareDbIO;
-import com.flaredb.runner.FlareRunner;
 
 /**
  * Example pipeline that reads rows from FlareDB using {@link FlareDbIO}.
@@ -29,13 +27,9 @@ public class ReadPipeline {
 
   public static void main(String[] args) {
     ReadPipelineOptions options =
-        PipelineOptionsFactory.fromArgs(args).as(ReadPipelineOptions.class);
-    options.setRunner(FlareRunner.class);
+        ReadPipelineOptions.applyFlareDefaults(
+            PipelineOptionsFactory.fromArgs(args).as(ReadPipelineOptions.class));
     options.setJobName("flareio-read-scores");
-    options.setJobEndpoint("127.0.0.1:8099");
-    options.setUberJar(
-        "/home/ganesh/flare-db/flareio/flare-db/example/flare-io-read/build/libs/"
-            + "flareio-read-0.1.0-all.jar");
 
     Pipeline pipeline = Pipeline.create(options);
 
@@ -46,8 +40,9 @@ public class ReadPipeline {
         pipeline.apply(
             "ReadFromFlareDb",
             FlareDbIO.read()
-            .fromQuery("SELECT id, name, score FROM flare.default.scores WHERE score > 90 ORDER BY id")
-            .withDbUrl(options.getDbUrl()));
+                .fromQuery(
+                    "SELECT id, name, score FROM flare.default.scores WHERE score > 90 ORDER BY id")
+                .withDbUrl(options.getDbUrl()));
 
     rows.apply(
         "LogRows",
