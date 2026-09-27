@@ -23,8 +23,8 @@ import org.junit.After;
 import org.junit.Test;
 
 /**
- * {@link FlarePipelineJob#getState()} and {@link FlarePipelineJob#cancel()} are backed by live
- * Job Service calls, exercised here against an in-process fake server. {@link
+ * {@link FlarePipelineJob#getState()} and {@link FlarePipelineJob#cancel()} are backed by live Job
+ * Service calls, exercised here against an in-process fake server. {@link
  * FlarePipelineJob#waitUntilFinish} and {@link FlarePipelineJob#metrics()} remain unimplemented;
  * those tests pin that contract down so it fails loudly once support is added.
  */

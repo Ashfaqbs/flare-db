@@ -20,9 +20,9 @@ import org.joda.time.Duration;
  * successful job submission. It encapsulates the Beam Job API job identifier and implements the
  * {@link PipelineResult} contract.
  *
- * <p>{@link #getState()} and {@link #cancel()} are backed by live calls to the Job Service.
- * {@link #waitUntilFinish} and {@link #metrics()} are not currently supported and will be
- * implemented in a future release.
+ * <p>{@link #getState()} and {@link #cancel()} are backed by live calls to the Job Service. {@link
+ * #waitUntilFinish} and {@link #metrics()} are not currently supported and will be implemented in a
+ * future release.
  *
  * <p>Owns the job-service channel handed to it by {@link FlareRunner#run}; callers that want to
  * release it deterministically (rather than leaving it open for further {@link #getState()} or
